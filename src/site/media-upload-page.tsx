@@ -1,96 +1,20 @@
 import type { FC } from 'hono/jsx';
+import { MEDIA_PICKER_CSS, MEDIA_PICKER_SCRIPT } from './media-picker-assets';
 
 const MEDIA_PAGE_SCRIPT = `
 const form = document.getElementById('media-upload-form');
-const fileInput = document.getElementById('media-file');
-const previewList = document.getElementById('media-preview-list');
 const statusBox = document.getElementById('media-status');
 const tagList = document.getElementById('media-tag-list');
 const submitButton = form ? form.querySelector('button[type="submit"]') : null;
-const previewUrls = [];
+const mediaPicker = window.createSchoolMediaPicker('media');
 
 function setStatus(message, isError) {
   statusBox.textContent = message;
   statusBox.dataset.state = isError ? 'error' : 'ok';
 }
 
-function formatBytes(size) {
-  if (!Number.isFinite(size)) return '';
-  if (size < 1024) return size + ' B';
-  if (size < 1024 * 1024) return (size / 1024).toFixed(1) + ' KB';
-  return (size / 1024 / 1024).toFixed(1) + ' MB';
-}
-
-function clearPreviewUrls() {
-  while (previewUrls.length) {
-    URL.revokeObjectURL(previewUrls.pop());
-  }
-}
-
 function setFileStatus(index, message, isError) {
-  if (!previewList) return;
-  const node = previewList.querySelector('[data-file-index="' + index + '"] .media-preview-status');
-  if (!node) return;
-  node.textContent = message;
-  node.dataset.state = isError ? 'error' : 'ok';
-}
-
-function renderPreviews() {
-  if (!previewList || !fileInput) return;
-  clearPreviewUrls();
-  previewList.innerHTML = '';
-  const files = Array.from(fileInput.files || []);
-  previewList.hidden = files.length === 0;
-
-  files.forEach((file, index) => {
-    const url = URL.createObjectURL(file);
-    previewUrls.push(url);
-    const card = document.createElement('article');
-    card.className = 'media-preview-card';
-    card.dataset.fileIndex = String(index);
-
-    const frame = document.createElement('div');
-    frame.className = 'media-preview-frame';
-    if (file.type.startsWith('video/')) {
-      const video = document.createElement('video');
-      video.controls = true;
-      video.preload = 'metadata';
-      video.src = url;
-      frame.appendChild(video);
-    } else {
-      const image = document.createElement('img');
-      image.alt = file.name;
-      image.src = url;
-      frame.appendChild(image);
-    }
-
-    const meta = document.createElement('div');
-    meta.className = 'media-preview-meta';
-    const name = document.createElement('span');
-    name.className = 'media-preview-name';
-    name.textContent = file.name;
-    const detail = document.createElement('span');
-    detail.textContent = (file.type || 'unknown') + ' / ' + formatBytes(file.size);
-    const itemStatus = document.createElement('span');
-    itemStatus.className = 'media-preview-status';
-    itemStatus.textContent = '待上传';
-    meta.append(name, detail, itemStatus);
-    card.append(frame, meta);
-    previewList.appendChild(card);
-  });
-}
-
-async function requestJson(path, body) {
-  const response = await fetch(path, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify(body)
-  });
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    throw new Error(payload.error || 'Request failed.');
-  }
-  return payload;
+  mediaPicker.setFileStatus(index, message, isError);
 }
 
 async function loadTags() {
@@ -131,7 +55,7 @@ async function uploadFile(file, index, metadata) {
 
 form.addEventListener('submit', async (event) => {
   event.preventDefault();
-  const files = Array.from(fileInput.files || []);
+  const files = mediaPicker.getFiles();
   if (files.length === 0) {
     setStatus('请选择媒体文件。', true);
     return;
@@ -170,15 +94,16 @@ form.addEventListener('submit', async (event) => {
       }
       setStatus('上传进度：' + succeeded + ' 成功，' + failed + ' 失败，合计 ' + files.length + ' 个。', failed > 0);
     }
-    fileInput.value = '';
-    if (failed === 0) form.reset();
+    if (failed === 0) {
+      form.reset();
+      mediaPicker.clear();
+    }
     setStatus('上传完成：' + succeeded + ' 成功，' + failed + ' 失败。', failed > 0);
   } finally {
     if (submitButton) submitButton.disabled = false;
   }
 });
 
-fileInput.addEventListener('change', renderPreviews);
 loadTags();
 `;
 
@@ -236,7 +161,7 @@ export const MediaUploadPage: FC = () => (
           gap: 8px;
           font-weight: 700;
         }
-        label.full {
+        .full {
           grid-column: 1 / -1;
         }
         input {
@@ -330,6 +255,7 @@ export const MediaUploadPage: FC = () => (
         .status[data-state="ok"] {
           color: #175cd3;
         }
+        ${MEDIA_PICKER_CSS}
         @media (max-width: 720px) {
           .grid {
             grid-template-columns: 1fr;
@@ -373,10 +299,13 @@ export const MediaUploadPage: FC = () => (
               <input list="media-tag-list" maxLength={240} name="tags" placeholder="例如：校门, 宿舍, R18" />
               <datalist id="media-tag-list" />
             </label>
-            <label className="full">
+            <div className="full media-picker-field">
               <span>媒体文件</span>
-              <input accept="image/gif,image/jpeg,image/png,image/webp,video/mp4,video/webm" id="media-file" multiple required type="file" />
-            </label>
+              <button className="media-picker-open-button" id="media-picker-open" type="button">
+                选择图片 / 视频
+              </button>
+              <p className="media-selected-summary" id="media-selected-summary">未选择媒体文件。</p>
+            </div>
           </div>
           <div>
             <strong>是否 R18</strong>
@@ -389,7 +318,31 @@ export const MediaUploadPage: FC = () => (
           <div className="media-preview-grid" hidden id="media-preview-list" />
           <p className="status" id="media-status" />
         </form>
+        <div className="media-picker-modal" hidden id="media-picker-dialog" role="dialog" aria-modal="true" aria-labelledby="media-picker-title">
+          <div className="media-picker-backdrop" data-media-picker-close="true" />
+          <section className="media-picker-panel">
+            <div className="media-picker-header">
+              <h2 id="media-picker-title">选择学校媒体</h2>
+              <button aria-label="关闭" className="media-picker-close" id="media-picker-close" type="button">×</button>
+            </div>
+            <div className="media-picker-body">
+              <div className="media-picker-dropzone" id="media-picker-dropzone">
+                <strong>拖拽图片或视频到这里</strong>
+                <p>也可以多次点击选择文件，一张一张补齐后再确认。</p>
+                <button className="media-picker-secondary" id="media-picker-choose" type="button">选择文件</button>
+                <input accept="image/gif,image/jpeg,image/png,image/webp,video/mp4,video/webm" hidden id="media-file" multiple type="file" />
+              </div>
+              <p className="media-picker-message" id="media-picker-message">拖拽文件到此处，或点击选择文件。</p>
+              <div className="media-preview-grid" hidden id="media-picker-draft-list" />
+            </div>
+            <div className="media-picker-footer">
+              <button className="media-picker-secondary" id="media-picker-cancel" type="button">取消</button>
+              <button className="media-picker-confirm" id="media-picker-confirm" type="button">确定</button>
+            </div>
+          </section>
+        </div>
       </main>
+      <script dangerouslySetInnerHTML={{ __html: MEDIA_PICKER_SCRIPT }} />
       <script dangerouslySetInnerHTML={{ __html: MEDIA_PAGE_SCRIPT }} />
     </body>
   </html>

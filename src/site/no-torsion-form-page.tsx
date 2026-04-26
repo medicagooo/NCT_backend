@@ -13,6 +13,7 @@ import {
   type NoTorsionConfirmResult,
   type NoTorsionFormValues,
 } from '../lib/no-torsion-form';
+import { MEDIA_PICKER_CSS, MEDIA_PICKER_SCRIPT } from './media-picker-assets';
 
 type AreaOption = {
   code: string;
@@ -551,6 +552,8 @@ button {
   background: rgba(22, 32, 51, 0.06);
   border-color: rgba(22, 32, 51, 0.08);
 }
+
+${MEDIA_PICKER_CSS}
 
 .location-actions {
   display: flex;
@@ -1755,9 +1758,8 @@ function syncQuestionnaireMediaUpload() {
   const button = document.getElementById('questionnaire-media-upload');
   const fileInput = document.getElementById('questionnaire-media-file');
   const tagInput = document.getElementById('questionnaire-media-tags');
-  const previewList = document.getElementById('questionnaire-media-preview-list');
   const status = document.getElementById('questionnaire-media-status');
-  const previewUrls = [];
+  const mediaPicker = window.createSchoolMediaPicker('questionnaire-media');
 
   function setStatus(message, isError) {
     if (!status) return;
@@ -1766,70 +1768,8 @@ function syncQuestionnaireMediaUpload() {
     status.hidden = false;
   }
 
-  function formatBytes(size) {
-    if (!Number.isFinite(size)) return '';
-    if (size < 1024) return size + ' B';
-    if (size < 1024 * 1024) return (size / 1024).toFixed(1) + ' KB';
-    return (size / 1024 / 1024).toFixed(1) + ' MB';
-  }
-
-  function clearPreviewUrls() {
-    while (previewUrls.length) {
-      URL.revokeObjectURL(previewUrls.pop());
-    }
-  }
-
   function setFileStatus(index, message, isError) {
-    if (!previewList) return;
-    const node = previewList.querySelector('[data-file-index="' + index + '"] .media-preview-status');
-    if (!node) return;
-    node.textContent = message;
-    node.dataset.state = isError ? 'error' : 'ok';
-  }
-
-  function renderPreviews() {
-    if (!previewList || !fileInput) return;
-    clearPreviewUrls();
-    previewList.innerHTML = '';
-    const files = Array.from(fileInput.files || []);
-    previewList.hidden = files.length === 0;
-
-    files.forEach((file, index) => {
-      const url = URL.createObjectURL(file);
-      previewUrls.push(url);
-      const card = document.createElement('article');
-      card.className = 'media-preview-card';
-      card.dataset.fileIndex = String(index);
-
-      const frame = document.createElement('div');
-      frame.className = 'media-preview-frame';
-      if (file.type.startsWith('video/')) {
-        const video = document.createElement('video');
-        video.controls = true;
-        video.preload = 'metadata';
-        video.src = url;
-        frame.appendChild(video);
-      } else {
-        const image = document.createElement('img');
-        image.alt = file.name;
-        image.src = url;
-        frame.appendChild(image);
-      }
-
-      const meta = document.createElement('div');
-      meta.className = 'media-preview-meta';
-      const name = document.createElement('span');
-      name.className = 'media-preview-name';
-      name.textContent = file.name;
-      const detail = document.createElement('span');
-      detail.textContent = (file.type || 'unknown') + ' / ' + formatBytes(file.size);
-      const itemStatus = document.createElement('span');
-      itemStatus.className = 'media-preview-status';
-      itemStatus.textContent = '待上传';
-      meta.append(name, detail, itemStatus);
-      card.append(frame, meta);
-      previewList.appendChild(card);
-    });
+    mediaPicker.setFileStatus(index, message, isError);
   }
 
   function selectedText(selectId) {
@@ -1853,7 +1793,6 @@ function syncQuestionnaireMediaUpload() {
   }
 
   if (!button || !fileInput) return;
-  fileInput.addEventListener('change', renderPreviews);
 
   async function uploadFile(file, index, metadata) {
     setFileStatus(index, '正在上传到后端', false);
@@ -1880,7 +1819,7 @@ function syncQuestionnaireMediaUpload() {
   }
 
   button.addEventListener('click', async () => {
-    const files = Array.from(fileInput.files || []);
+    const files = mediaPicker.getFiles();
     const schoolNameInput = document.querySelector('input[name="school_name"]');
     const addressInput = document.querySelector('input[name="school_address"]');
     const r18Input = document.querySelector('input[name="questionnaire_media_r18"]:checked');
@@ -1926,8 +1865,10 @@ function syncQuestionnaireMediaUpload() {
         setStatus('上传进度：' + succeeded + ' 成功，' + failed + ' 失败，合计 ' + files.length + ' 个。', failed > 0);
       }
 
-      fileInput.value = '';
-      if (failed === 0 && tagInput) tagInput.value = '';
+      if (failed === 0) {
+        mediaPicker.clear();
+        if (tagInput) tagInput.value = '';
+      }
       setStatus('上传完成：' + succeeded + ' 成功，' + failed + ' 失败。', failed > 0);
     } finally {
       button.disabled = false;
@@ -2324,15 +2265,13 @@ export const NoTorsionStandaloneFormPage: FC<FormPageState> = ({ lang, token }) 
                 <h2 className="form-section-title">{texts.fieldMediaSection}</h2>
                 <p className="field-note">{texts.helperMediaUpload}</p>
                 <div className="inline-grid">
-                  <label>
+                  <div className="media-picker-field">
                     <span className="field__label">{texts.fieldMediaFile}</span>
-                    <input
-                      accept="image/gif,image/jpeg,image/png,image/webp,video/mp4,video/webm"
-                      id="questionnaire-media-file"
-                      multiple
-                      type="file"
-                    />
-                  </label>
+                    <button className="media-picker-open-button" id="questionnaire-media-picker-open" type="button">
+                      选择图片 / 视频
+                    </button>
+                    <p className="media-selected-summary" id="questionnaire-media-selected-summary">未选择媒体文件。</p>
+                  </div>
                   <label>
                     <span className="field__label">{texts.fieldMediaTags}</span>
                     <input
@@ -2361,6 +2300,29 @@ export const NoTorsionStandaloneFormPage: FC<FormPageState> = ({ lang, token }) 
                 </button>
                 <div className="media-preview-grid" hidden id="questionnaire-media-preview-list" />
                 <p className="field-note" hidden id="questionnaire-media-status" />
+                <div className="media-picker-modal" hidden id="questionnaire-media-picker-dialog" role="dialog" aria-modal="true" aria-labelledby="questionnaire-media-picker-title">
+                  <div className="media-picker-backdrop" data-media-picker-close="true" />
+                  <section className="media-picker-panel">
+                    <div className="media-picker-header">
+                      <h2 id="questionnaire-media-picker-title">选择学校媒体</h2>
+                      <button aria-label="关闭" className="media-picker-close" id="questionnaire-media-picker-close" type="button">×</button>
+                    </div>
+                    <div className="media-picker-body">
+                      <div className="media-picker-dropzone" id="questionnaire-media-picker-dropzone">
+                        <strong>拖拽图片或视频到这里</strong>
+                        <p>也可以多次点击选择文件，一张一张补齐后再确认。</p>
+                        <button className="media-picker-secondary" id="questionnaire-media-picker-choose" type="button">选择文件</button>
+                        <input accept="image/gif,image/jpeg,image/png,image/webp,video/mp4,video/webm" hidden id="questionnaire-media-file" multiple type="file" />
+                      </div>
+                      <p className="media-picker-message" id="questionnaire-media-picker-message">拖拽文件到此处，或点击选择文件。</p>
+                      <div className="media-preview-grid" hidden id="questionnaire-media-picker-draft-list" />
+                    </div>
+                    <div className="media-picker-footer">
+                      <button className="media-picker-secondary" id="questionnaire-media-picker-cancel" type="button">取消</button>
+                      <button className="media-picker-confirm" id="questionnaire-media-picker-confirm" type="button">确定</button>
+                    </div>
+                  </section>
+                </div>
               </div>
 
               <div className="field">
@@ -2426,6 +2388,7 @@ export const NoTorsionStandaloneFormPage: FC<FormPageState> = ({ lang, token }) 
         id="area-payload"
         type="application/json"
       />
+      <script dangerouslySetInnerHTML={{ __html: MEDIA_PICKER_SCRIPT }} />
       <script dangerouslySetInnerHTML={{ __html: AREA_SCRIPT }} />
     </HtmlDocument>
   );
