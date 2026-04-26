@@ -16,5 +16,6 @@ interface Env {
   MOTHER_REPORT_URL?: string;
   MOTHER_REPORT_TIMEOUT_MS?: string;
   DATABACK_EXPORT_MIN_INTERVAL_MS?: string;
+  DEBUG_MOD?: string;
   TRANSLATION_PROVIDER_TIMEOUT_MS?: string;
 }

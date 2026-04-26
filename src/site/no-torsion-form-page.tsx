@@ -24,6 +24,7 @@ type SupportedLanguage = 'en' | 'zh-CN' | 'zh-TW';
 type PageTexts = {
   actionBack: string;
   actionConfirm: string;
+  actionHome: string;
   actionOpenForm: string;
   actionOpenMapPicker: string;
   actionSubmit: string;
@@ -132,6 +133,7 @@ type LanguageOption = {
 };
 
 type FormPageState = {
+  homeHref?: string;
   lang: SupportedLanguage;
   token: string;
 };
@@ -153,22 +155,37 @@ type ResultPageState = {
   statusCode: number;
 };
 
+type DebugLink = {
+  description: string;
+  href: string;
+  label: string;
+};
+
+type DebugPageState = {
+  apiLinks: DebugLink[];
+  lang: SupportedLanguage;
+  pageLinks: DebugLink[];
+};
+
 const PAGE_CSS = `
 :root {
-  color-scheme: light;
-  --bg: #f2f1eb;
-  --surface: rgba(255, 255, 255, 0.88);
-  --surface-strong: rgba(255, 255, 255, 0.96);
-  --border: rgba(19, 32, 51, 0.1);
-  --text: #162033;
-  --muted: #5a6a7f;
-  --accent: #0d6b6f;
-  --accent-soft: #dff6f1;
-  --danger: #9f2d2d;
-  --danger-soft: #fce9e9;
-  --success: #136a4c;
-  --success-soft: #e1f6ea;
-  --shadow: 0 24px 60px rgba(15, 28, 45, 0.08);
+  color-scheme: light dark;
+  --bg: #f8fbff;
+  --surface: rgba(255, 255, 255, 0.56);
+  --surface-strong: rgba(255, 255, 255, 0.72);
+  --border: rgba(81, 111, 164, 0.24);
+  --border-strong: rgba(255, 255, 255, 0.58);
+  --text: #14243d;
+  --muted: rgba(31, 49, 80, 0.72);
+  --accent: #2f6fea;
+  --accent-strong: #174fb8;
+  --accent-soft: rgba(255, 255, 255, 0.62);
+  --danger: #9f2d57;
+  --danger-soft: rgba(255, 232, 241, 0.7);
+  --success: #0c7a62;
+  --success-soft: rgba(222, 255, 244, 0.68);
+  --shadow: 0 28px 80px rgba(95, 116, 172, 0.2);
+  --shadow-soft: 0 16px 44px rgba(95, 116, 172, 0.14);
   --radius-lg: 28px;
   --radius-md: 20px;
   --radius-sm: 14px;
@@ -186,11 +203,34 @@ body {
   margin: 0;
   color: var(--text);
   background:
-    radial-gradient(circle at top left, rgba(59, 130, 246, 0.12), transparent 32%),
-    radial-gradient(circle at top right, rgba(13, 107, 111, 0.14), transparent 28%),
-    linear-gradient(180deg, #f6f5f0 0%, #ece7da 100%);
+    linear-gradient(115deg, rgba(213, 237, 255, 0.96) 0%, rgba(231, 225, 255, 0.86) 45%, rgba(255, 218, 238, 0.96) 100%);
   font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
   min-height: 100vh;
+  overflow-x: hidden;
+}
+
+body::before,
+body::after {
+  content: "";
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+}
+
+body::before {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.42), transparent 34%),
+    linear-gradient(315deg, rgba(255, 255, 255, 0.34), transparent 38%);
+}
+
+body::after {
+  opacity: 0.36;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.38) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.28) 1px, transparent 1px);
+  background-size: 96px 96px;
+  mask-image: linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.42) 30%, transparent 100%);
 }
 
 a {
@@ -213,6 +253,8 @@ button {
   width: min(1040px, calc(100% - 28px));
   margin: 0 auto;
   padding: 28px 0 56px;
+  position: relative;
+  z-index: 1;
 }
 
 .standalone-toolbar {
@@ -228,11 +270,14 @@ button {
   align-items: center;
   gap: 6px;
   padding: 6px;
-  border: 1px solid rgba(22, 32, 51, 0.1);
+  border: 1px solid var(--border);
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.66);
-  box-shadow: 0 14px 36px rgba(15, 28, 45, 0.06);
-  backdrop-filter: blur(18px);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0.36)),
+    var(--surface);
+  box-shadow: var(--shadow-soft);
+  backdrop-filter: blur(26px) saturate(170%);
+  -webkit-backdrop-filter: blur(26px) saturate(170%);
 }
 
 .standalone-language-picker__label {
@@ -256,7 +301,7 @@ button {
 
 .standalone-language-picker__option:hover {
   color: var(--text);
-  background: rgba(13, 107, 111, 0.08);
+  background: rgba(255, 255, 255, 0.36);
 }
 
 .standalone-language-picker__option.is-active {
@@ -267,11 +312,14 @@ button {
 .hero,
 .panel,
 .status-card {
-  background: var(--surface);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.62), rgba(255, 255, 255, 0.26)),
+    var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow);
-  backdrop-filter: blur(18px);
+  backdrop-filter: blur(28px) saturate(175%);
+  -webkit-backdrop-filter: blur(28px) saturate(175%);
 }
 
 .hero {
@@ -280,6 +328,19 @@ button {
   justify-items: start;
   padding: 28px;
   margin-bottom: 20px;
+  position: relative;
+  overflow: hidden;
+}
+
+.hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(115deg, rgba(255, 255, 255, 0.34), transparent 36%),
+    linear-gradient(295deg, rgba(255, 255, 255, 0.22), transparent 42%);
+  opacity: 0.88;
 }
 
 .hero--form {
@@ -292,7 +353,9 @@ button {
   display: inline-flex;
   padding: 6px 12px;
   border-radius: 999px;
-  background: var(--accent-soft);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(255, 255, 255, 0.38)),
+    var(--accent-soft);
   color: var(--accent);
   font-size: 0.85rem;
   font-weight: 700;
@@ -304,6 +367,7 @@ button {
   margin: 0;
   font-size: 2.25rem;
   line-height: 1.12;
+  position: relative;
 }
 
 .hero--form h1 {
@@ -318,6 +382,7 @@ button {
   max-width: 62ch;
   color: var(--muted);
   line-height: 1.7;
+  position: relative;
 }
 
 .hero--form p {
@@ -373,10 +438,13 @@ button {
 .field textarea {
   width: 100%;
   padding: 14px 16px;
-  border: 1px solid rgba(22, 32, 51, 0.14);
+  border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  background: var(--surface-strong);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.64), rgba(255, 255, 255, 0.34)),
+    var(--surface-strong);
   color: var(--text);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.48);
 }
 
 .field textarea {
@@ -409,9 +477,11 @@ button {
   gap: 10px;
   min-height: 48px;
   padding: 12px 14px;
-  border: 1px solid rgba(22, 32, 51, 0.12);
+  border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  background: rgba(255, 255, 255, 0.62);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.58), rgba(255, 255, 255, 0.28)),
+    var(--surface);
   line-height: 1.45;
 }
 
@@ -432,8 +502,8 @@ button {
   gap: 8px;
   padding: 10px 14px;
   border-radius: 999px;
-  background: rgba(13, 107, 111, 0.08);
-  border: 1px solid rgba(13, 107, 111, 0.14);
+  background: rgba(255, 255, 255, 0.34);
+  border: 1px solid var(--border);
 }
 
 .choice-pill input[type="text"] {
@@ -459,9 +529,11 @@ button {
 .hotline-notice {
   margin: 18px 0 0;
   padding: 16px 18px;
-  border: 1px solid rgba(13, 107, 111, 0.18);
+  border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  background: rgba(223, 246, 241, 0.78);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.62), rgba(255, 255, 255, 0.3)),
+    rgba(224, 247, 255, 0.5);
   color: var(--accent);
   font-weight: 700;
   line-height: 1.7;
@@ -477,11 +549,14 @@ button {
   min-width: 8.5rem;
   padding: 14px 20px;
   border-radius: 999px;
-  border: 1px solid transparent;
+  border: 1px solid var(--border);
   font-weight: 700;
   line-height: 1.2;
   text-align: center;
   white-space: nowrap;
+  backdrop-filter: blur(20px) saturate(170%);
+  -webkit-backdrop-filter: blur(20px) saturate(170%);
+  box-shadow: var(--shadow-soft);
 }
 
 .button:focus {
@@ -494,15 +569,15 @@ button {
 }
 
 .button--primary {
-  background: var(--accent);
-  border-color: rgba(13, 107, 111, 0.38);
-  box-shadow: 0 12px 26px rgba(13, 107, 111, 0.16);
+  background: linear-gradient(135deg, rgba(104, 172, 255, 0.96), rgba(255, 158, 207, 0.82));
+  border-color: var(--border-strong);
+  box-shadow: 0 14px 34px rgba(80, 115, 204, 0.24);
   color: white;
 }
 
 .button--secondary {
-  background: rgba(22, 32, 51, 0.06);
-  border-color: rgba(22, 32, 51, 0.08);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.66), rgba(255, 255, 255, 0.32));
+  border-color: var(--border);
 }
 
 .location-actions {
@@ -529,9 +604,9 @@ button {
   width: 100%;
   min-height: 320px;
   overflow: hidden;
-  border: 1px solid rgba(22, 32, 51, 0.14);
+  border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  background: rgba(22, 32, 51, 0.04);
+  background: rgba(255, 255, 255, 0.34);
 }
 
 .honeypot {
@@ -548,9 +623,10 @@ button {
 }
 
 .summary-item {
+  display: block;
   padding: 16px 18px;
   border-radius: var(--radius-md);
-  background: rgba(22, 32, 51, 0.04);
+  background: rgba(255, 255, 255, 0.3);
 }
 
 .summary-item strong {
@@ -568,11 +644,15 @@ button {
 }
 
 .status-card--success {
-  background: var(--success-soft);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.56), rgba(255, 255, 255, 0.24)),
+    var(--success-soft);
 }
 
 .status-card--failure {
-  background: var(--danger-soft);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.56), rgba(255, 255, 255, 0.24)),
+    var(--danger-soft);
 }
 
 .status-card h3 {
@@ -584,6 +664,80 @@ button {
     margin: 0;
     line-height: 1.6;
   }
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #070b18;
+    --surface: rgba(13, 20, 43, 0.5);
+    --surface-strong: rgba(20, 30, 58, 0.66);
+    --border: rgba(225, 238, 255, 0.2);
+    --border-strong: rgba(255, 255, 255, 0.36);
+    --text: #f3f7ff;
+    --muted: rgba(224, 234, 255, 0.72);
+    --accent: #a6ddff;
+    --accent-strong: #72bfff;
+    --accent-soft: rgba(169, 210, 255, 0.14);
+    --danger: #ff9ab9;
+    --danger-soft: rgba(92, 23, 48, 0.56);
+    --success: #8df4ce;
+    --success-soft: rgba(15, 89, 77, 0.46);
+    --shadow: 0 32px 90px rgba(0, 0, 0, 0.45);
+    --shadow-soft: 0 18px 52px rgba(0, 0, 0, 0.32);
+  }
+
+  body {
+    background:
+      radial-gradient(ellipse at 50% 110%, rgba(114, 170, 255, 0.2), transparent 48%),
+      radial-gradient(ellipse at 18% 20%, rgba(154, 107, 255, 0.22), transparent 34%),
+      radial-gradient(ellipse at 78% 24%, rgba(83, 201, 255, 0.16), transparent 30%),
+      linear-gradient(180deg, #060816 0%, #0b1028 46%, #14091f 100%);
+  }
+
+  body::before {
+    background-image:
+      radial-gradient(circle at 7% 14%, rgba(255, 255, 255, 0.9) 0 1px, transparent 1.7px),
+      radial-gradient(circle at 24% 38%, rgba(210, 232, 255, 0.9) 0 1px, transparent 1.6px),
+      radial-gradient(circle at 46% 18%, rgba(255, 255, 255, 0.75) 0 1px, transparent 1.4px),
+      radial-gradient(circle at 64% 62%, rgba(255, 221, 250, 0.8) 0 1px, transparent 1.6px),
+      radial-gradient(circle at 84% 30%, rgba(255, 255, 255, 0.86) 0 1px, transparent 1.5px),
+      radial-gradient(circle at 92% 78%, rgba(178, 214, 255, 0.82) 0 1px, transparent 1.6px);
+    background-size: 220px 220px, 180px 180px, 260px 260px, 210px 210px, 300px 300px, 240px 240px;
+    opacity: 0.72;
+  }
+
+  body::after {
+    opacity: 0.56;
+    background:
+      radial-gradient(ellipse at 50% 48%, rgba(185, 212, 255, 0.16), transparent 12%),
+      linear-gradient(118deg, transparent 18%, rgba(125, 178, 255, 0.11) 38%, rgba(255, 175, 220, 0.09) 50%, rgba(151, 247, 255, 0.1) 62%, transparent 82%);
+    mask-image: none;
+  }
+
+  .hero,
+  .panel,
+  .status-card,
+  .standalone-language-picker {
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.04)),
+      var(--surface);
+  }
+
+  .field input,
+  .field select,
+  .field textarea {
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.04)),
+      var(--surface-strong);
+  }
+
+  .choice-option,
+  .summary-item,
+  .choice-pill,
+  .hotline-notice,
+  .button--secondary {
+    background: rgba(255, 255, 255, 0.08);
+  }
+}
 
 @media (max-width: 760px) {
   .page-shell {
@@ -808,6 +962,7 @@ const TEXTS: Record<SupportedLanguage, PageTexts> = {
   'zh-CN': {
     actionBack: '返回',
     actionConfirm: '确认提交',
+    actionHome: '返回主页',
     actionOpenForm: '打开填写页',
     actionOpenMapPicker: '点击可直接在地图上选点',
     actionSubmit: '继续确认',
@@ -912,6 +1067,7 @@ const TEXTS: Record<SupportedLanguage, PageTexts> = {
   'zh-TW': {
     actionBack: '返回',
     actionConfirm: '確認送出',
+    actionHome: '返回主頁',
     actionOpenForm: '開啟填寫頁',
     actionOpenMapPicker: '點擊可直接在地圖上選點',
     actionSubmit: '繼續確認',
@@ -1016,6 +1172,7 @@ const TEXTS: Record<SupportedLanguage, PageTexts> = {
   en: {
     actionBack: 'Back',
     actionConfirm: 'Confirm submission',
+    actionHome: 'Back to home',
     actionOpenForm: 'Open form',
     actionOpenMapPicker: 'Pick on map',
     actionSubmit: 'Continue',
@@ -1216,9 +1373,10 @@ function buildConfirmHref(language: SupportedLanguage): string {
 }
 
 const LanguagePicker: FC<{
+  buildHref?: (language: SupportedLanguage) => string;
   lang: SupportedLanguage;
   texts: PageTexts;
-}> = ({ lang, texts }) => (
+}> = ({ buildHref = buildFormHref, lang, texts }) => (
   <div className="standalone-toolbar" aria-label={texts.labelLanguage}>
     <span className="standalone-language-picker__label">{texts.labelLanguage}</span>
     <div className="standalone-language-picker" role="group" aria-label={texts.labelLanguage}>
@@ -1227,7 +1385,7 @@ const LanguagePicker: FC<{
           aria-current={option.code === lang ? 'page' : undefined}
           className={`standalone-language-picker__option${option.code === lang ? ' is-active' : ''}`}
           data-standalone-language-link={option.code}
-          href={buildFormHref(option.code)}
+          href={buildHref(option.code)}
           key={option.code}
         >
           {option.label}
@@ -1754,7 +1912,7 @@ const HtmlDocument: FC<{
   );
 };
 
-export const NoTorsionStandaloneFormPage: FC<FormPageState> = ({ lang, token }) => {
+export const NoTorsionStandaloneFormPage: FC<FormPageState> = ({ homeHref = '/', lang, token }) => {
   const texts = getTexts(lang);
   const birthYearOptions = buildBirthYearOptions();
 
@@ -1774,6 +1932,11 @@ export const NoTorsionStandaloneFormPage: FC<FormPageState> = ({ lang, token }) 
         <section className="hero hero--form">
           <h1>{texts.pageFormTitle}</h1>
           <p>{texts.helperFormIntro}</p>
+          <div className="actions actions--hero">
+            <a className="button button--secondary" href={homeHref} target="_top">
+              {texts.actionHome}
+            </a>
+          </div>
         </section>
 
         <section className="panel">
@@ -2247,6 +2410,73 @@ export const NoTorsionStandaloneResultPage: FC<ResultPageState> = ({
           <div className="actions">
             <a className="button button--secondary" href={backHref}>{texts.actionBack}</a>
           </div>
+        </section>
+      </main>
+    </HtmlDocument>
+  );
+};
+
+export const NoTorsionStandaloneDebugPage: FC<DebugPageState> = ({
+  apiLinks,
+  lang,
+  pageLinks,
+}) => {
+  const texts = getTexts(lang);
+  const isEnglish = lang === 'en';
+  const title = isEnglish ? 'Debug routes' : lang === 'zh-TW' ? '調試路由' : '调试路由';
+  const intro = isEnglish
+    ? 'This page is available only when DEBUG_MOD=true. Use it to open every standalone page route without submitting real data.'
+    : lang === 'zh-TW'
+      ? '此頁面僅在 DEBUG_MOD=true 時可用，可用來開啟所有獨立頁面路由，不會送出真實資料。'
+      : '此页面仅在 DEBUG_MOD=true 时可用，可用来进入所有独立页面路由，不会提交真实数据。';
+  const pageSectionTitle = isEnglish ? 'Page routes' : lang === 'zh-TW' ? '頁面路由' : '页面路由';
+  const apiSectionTitle = isEnglish ? 'API routes' : 'API 路由';
+
+  function renderLinks(links: DebugLink[]) {
+    return (
+      <div className="summary-list">
+        {links.map((link) => (
+          <a className="summary-item" href={link.href} key={link.href}>
+            <strong>{link.label}</strong>
+            <span>
+              <code>{link.href}</code>
+              {link.description ? ` ${link.description}` : ''}
+            </span>
+          </a>
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <HtmlDocument
+      cityPlaceholder=""
+      countyPlaceholder=""
+      description={intro}
+      lang={lang}
+      title={`${title} | NCT API SQL Sub`}
+    >
+      <main className="page-shell">
+        <LanguagePicker
+          buildHref={(nextLang) => `/debug?lang=${encodeURIComponent(nextLang)}`}
+          lang={lang}
+          texts={texts}
+        />
+
+        <section className="hero">
+          <span className="hero__eyebrow">DEBUG</span>
+          <h1>{title}</h1>
+          <p>{intro}</p>
+        </section>
+
+        <section className="panel">
+          <h2>{pageSectionTitle}</h2>
+          {renderLinks(pageLinks)}
+        </section>
+
+        <section className="panel">
+          <h2>{apiSectionTitle}</h2>
+          {renderLinks(apiLinks)}
         </section>
       </main>
     </HtmlDocument>

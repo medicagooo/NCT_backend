@@ -160,6 +160,8 @@ describe('No-Torsion standalone JSX pages', () => {
       '全国统一心理援助：12356；青少年心理咨询和法律援助：12355；希望热线（全国性24小时心理危机干预）：400-161-9995',
     );
     expect(html).toContain('坐标（纬度, 经度）');
+    expect(html).toContain('返回主页');
+    expect(html).toContain('target="_top"');
     expect(html).toContain('class="standalone-language-picker__option is-active"');
     expect(html).toContain('href="/form?lang=zh-TW"');
   });
