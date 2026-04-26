@@ -1173,8 +1173,6 @@ function buildBirthYearOptions(): number[] {
   return Array.from({ length: currentYear - 1899 }, (_value, index) => currentYear - index);
 }
 
-const BIRTH_YEAR_OPTIONS = buildBirthYearOptions();
-
 function buildFormHref(language: SupportedLanguage): string {
   return `/form?lang=${encodeURIComponent(language)}`;
 }
@@ -1724,6 +1722,7 @@ const HtmlDocument: FC<{
 
 export const NoTorsionStandaloneFormPage: FC<FormPageState> = ({ lang, token }) => {
   const texts = getTexts(lang);
+  const birthYearOptions = buildBirthYearOptions();
 
   return (
     <HtmlDocument
@@ -1796,7 +1795,7 @@ export const NoTorsionStandaloneFormPage: FC<FormPageState> = ({ lang, token }) 
                 </span>
                 <select defaultValue="" id="birth-year" name="birth_year" required>
                   <option value="">{texts.placeholderBirthYear}</option>
-                  {BIRTH_YEAR_OPTIONS.map((year) => (
+                  {birthYearOptions.map((year) => (
                     <option key={year} value={String(year)}>{year}</option>
                   ))}
                 </select>

@@ -1,5 +1,5 @@
 import { renderToString } from 'hono/jsx/dom/server';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type {
   NoTorsionConfirmResult,
   NoTorsionFormValues,
@@ -52,6 +52,34 @@ const baseValues: NoTorsionFormValues = {
 };
 
 describe('No-Torsion standalone JSX pages', () => {
+  it('builds birth year options at request render time', async () => {
+    vi.useFakeTimers();
+
+    try {
+      vi.setSystemTime(new Date('1970-01-01T00:00:00.000Z'));
+      vi.resetModules();
+
+      const { NoTorsionStandaloneFormPage: FreshFormPage } = await import(
+        './no-torsion-form-page'
+      );
+
+      vi.setSystemTime(new Date('2026-04-27T00:00:00.000Z'));
+      const html = renderToString(
+        FreshFormPage({
+          lang: 'en',
+          token: 'public-form-token',
+        }),
+      );
+
+      expect(html).toMatch(
+        /<select[^>]*id="birth-year"[^>]*>[\s\S]*?<option value="">Select a year<\/option><option value="2026">2026<\/option>/,
+      );
+    } finally {
+      vi.useRealTimers();
+      vi.resetModules();
+    }
+  });
+
   it('renders the standalone form page with server-side Hono JSX output', () => {
     const html = renderToString(
       NoTorsionStandaloneFormPage({
