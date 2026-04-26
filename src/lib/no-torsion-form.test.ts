@@ -232,13 +232,12 @@ describe('Google Form submit URL helpers', () => {
     );
   });
 
-  it('accepts a full Google Form URL in either config field', () => {
-    expect(buildGoogleFormSubmitUrl({ fullUrl: GOOGLE_FORM_DOCUMENT_URL })).toBe(
-      `${GOOGLE_FORM_DOCUMENT_URL}/formResponse`,
-    );
-    expect(buildGoogleFormSubmitUrl({ formId: `${GOOGLE_FORM_DOCUMENT_URL}/viewform` })).toBe(
-      `${GOOGLE_FORM_DOCUMENT_URL}/formResponse`,
-    );
+  it('requires the Google Form ID config to be an ID, not a full URL', () => {
+    expect(
+      buildGoogleFormSubmitUrl({
+        formId: `${GOOGLE_FORM_DOCUMENT_URL}/viewform`,
+      }),
+    ).toBe('');
   });
 });
 

@@ -221,8 +221,8 @@ cp .env.example .dev.vars
 - `APP_NAME`
 - `MOTHER_REPORT_TIMEOUT_MS`
 - `DATABACK_EXPORT_MIN_INTERVAL_MS`
-- `NO_TORSION_GOOGLE_FORM_URL` / `NO_TORSION_FORM_ID`
-- `NO_TORSION_CORRECTION_GOOGLE_FORM_URL` / `NO_TORSION_CORRECTION_FORM_ID`
+- `NO_TORSION_FORM_ID`
+- `NO_TORSION_CORRECTION_FORM_ID`
 - `NO_TORSION_SITE_URL`
 - `NO_TORSION_FORM_PROTECTION_MIN_FILL_MS`
 - `NO_TORSION_FORM_PROTECTION_MAX_AGE_MS`
@@ -231,11 +231,12 @@ cp .env.example .dev.vars
 
 - `APP_NAME` 不填时默认使用 `NCT API SQL Sub`
 - 子库上报时会带上 `serviceWatermark: "nct-api-sql-sub:v1"`；母库用它确认协议类型，但真正认证靠 30 秒 HMAC
+- `MOTHER_REPORT_URL` 填母库基础 URL；子库会固定请求 `/api/sub/report`，并用 `/api/sub/form-records` 回传表单记录
 - `SERVICE_PUBLIC_URL` 必须稳定；它既是子库登记 URL，也是上报、表单回传、母库推送和灾备回拉的 HMAC seed
 - `nct_databack` 传输本身不再加密；请求身份通过 HMAC Bearer token 验证
 - 子库本地普通 JSON 回传给母库时不再额外做字段加密，也不再需要 `DEFAULT_ENCRYPT_FIELDS`、`ENCRYPTION_KEY`、`ENCRYPTION_KEY_VERSION`
 - `No-Torsion` 现在只支持 `NO_TORSION_*` 变量名；旧 `FORM_*` / `CORRECTION_*` 兼容别名已删除
-- `NO_TORSION_GOOGLE_FORM_URL` / `NO_TORSION_CORRECTION_GOOGLE_FORM_URL` 可以填写完整 Google Form 链接，支持 `/forms/d/<id>`、`/forms/d/<id>/viewform`、`/forms/d/<id>/prefill`、`/forms/d/e/<id>/viewform` 和 `/formResponse` 形态；`NO_TORSION_FORM_ID` / `NO_TORSION_CORRECTION_FORM_ID` 可以填写 raw form ID
+- `NO_TORSION_FORM_ID` / `NO_TORSION_CORRECTION_FORM_ID` 只填写 Google Form ID，不再支持完整 Google Form 链接变量
 - 表单保护 secret 不再通过环境变量输入；服务首次发放表单 token 时会自动生成并保存到 D1 的 `__system__:form_protection_secret`
 
 当 `No-Torsion` 接入本服务时：
@@ -309,7 +310,7 @@ npm run dev
 ```text
 APP_NAME=NCT API SQL Sub
 SERVICE_PUBLIC_URL=https://sub.example.com
-MOTHER_REPORT_URL=https://api.example.com/api/sub/report
+MOTHER_REPORT_URL=https://api.example.com
 MOTHER_REPORT_TIMEOUT_MS=10000
 DATABACK_EXPORT_MIN_INTERVAL_MS=60000
 NO_TORSION_FORM_DRY_RUN=false

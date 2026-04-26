@@ -488,13 +488,7 @@ export function buildGoogleFormSubmitUrl(options: {
   defaultFormId?: string;
   defaultFormIdSuffix?: string;
   formId?: string;
-  fullUrl?: string;
 }): string {
-  const configuredUrl = readTrimmedEnvValue(options.fullUrl);
-  if (configuredUrl) {
-    return normalizeGoogleFormSubmitUrl(configuredUrl);
-  }
-
   let resolvedFormId = readTrimmedEnvValue(options.formId);
   if (!resolvedFormId && options.defaultFormId) {
     resolvedFormId = options.defaultFormId;
@@ -505,9 +499,7 @@ export function buildGoogleFormSubmitUrl(options: {
   }
 
   if (/^https?:\/\//i.test(resolvedFormId)) {
-    return buildGoogleFormSubmitUrl({
-      fullUrl: resolvedFormId,
-    });
+    return '';
   }
 
   if (
@@ -527,7 +519,6 @@ function getFormGoogleSubmitUrl(env: Env): string {
   return buildGoogleFormSubmitUrl({
     defaultFormId: '1FAIpQLScolfqJ9dbvJxhjoKYVlmKGwHmy7RiQThutDXpKj7W7jGytfg',
     formId: readTrimmedEnvValue(env.NO_TORSION_FORM_ID),
-    fullUrl: readTrimmedEnvValue(env.NO_TORSION_GOOGLE_FORM_URL),
   });
 }
 
@@ -536,7 +527,6 @@ function getCorrectionGoogleSubmitUrl(env: Env): string {
     defaultFormId: '1FAIpQLSfiXdpt8CgOGZQhvsJTc1koQbvXFo6eWfnigQ329r1',
     defaultFormIdSuffix: '-3DniNA',
     formId: readTrimmedEnvValue(env.NO_TORSION_CORRECTION_FORM_ID),
-    fullUrl: readTrimmedEnvValue(env.NO_TORSION_CORRECTION_GOOGLE_FORM_URL),
   });
 }
 
