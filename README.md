@@ -187,6 +187,7 @@ cp .env.example .dev.vars
 
 [`./.env.example`](./.env.example) 已按修改必要性排序列出当前项目的全部环境变量。
 本地 Wrangler 读取 `.dev.vars`；线上部署时，把同名键写入 Cloudflare Variables / Secrets。
+这些运行变量不会写入 `wrangler.toml`；部署脚本使用 `wrangler deploy --keep-vars`，避免 Git 中的配置覆盖 Dashboard 里的生产变量。
 
 #### 必填环境变量
 
@@ -279,6 +280,7 @@ npm run dev
 仅推荐使用 Cloudflare Dashboard 的 Workers Builds 网页部署。本项目的 Worker 项目名使用目录名的 Workers 兼容形式：`nct-backend`。
 
 网页部署会读取 [`wrangler.toml`](./wrangler.toml)。部署命令里的 `npm run cf:ensure` 会自动创建 D1 数据库 `nct-backend`、把真实 `database_id` 写入当前构建环境中的 `wrangler.toml`，并执行远端 D1 migrations；不需要再手动创建 D1 或手动填写 `database_id`。
+`wrangler.toml` 不包含 `[vars]`，生产变量和密钥以 Cloudflare Dashboard 为准。
 
 ### Workers Builds 填写
 
