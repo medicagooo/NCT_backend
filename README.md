@@ -359,6 +359,30 @@ https://sub.example.com/form
 
 Workers 没有部署后启动钩子，所以首次 bootstrap / report 会在第一次实际请求或后续 Cron 中发生。回到母库 `https://api.example.com/Console`，确认子库上报已经被记录。
 
+### 5. Cloudflare Dashboard 网页端部署
+
+如果希望主要在 Cloudflare 网页上完成部署，可以使用 Workers Builds 连接 Git 仓库。网页部署仍会读取本目录的 [`wrangler.toml`](./wrangler.toml)，因此先确认 `name = "nct-api-sql-sub"`、`main = "src/index.ts"`、`compatibility_date`、Cron 和 `DB` 绑定都已提交到仓库；不要把示例里的 `database_id = "00000000-0000-0000-0000-000000000000"` 留在线上配置中。
+
+推荐步骤：
+
+1. 在 Cloudflare Dashboard 进入 `Workers & Pages`，创建或选择名为 `nct-api-sql-sub` 的 Worker。
+2. 打开该 Worker 的 `Settings` -> `Builds`，选择 `Connect`，连接 GitHub / GitLab 仓库。
+3. 构建设置按项目位置填写：
+   - Repository root 如果是整个 `nct` 仓库，Root directory 填 `NCT_backend`；如果本项目是独立仓库，留空或填 `/`。
+   - Production branch 填实际生产分支，例如 `main`。
+   - Build command 填 `npm run check`，用于部署前跑类型检查和测试。
+   - Deploy command 填 `npx wrangler deploy`。
+4. 在 `D1 SQL database` 页面创建数据库 `nct-api-sql-sub`，复制数据库 ID，写回并提交 [`wrangler.toml`](./wrangler.toml) 的 `[[d1_databases]]`；也可以在 Worker 的 `Settings` -> `Bindings` 手动添加 `D1 database` 绑定，变量名必须是 `DB`。
+5. 在 D1 数据库的 `Console` 中按文件名顺序执行 [`migrations`](./migrations) 里的 SQL。更稳妥的方式仍是在本地执行 `npm run db:migrate:remote`，避免漏跑某个 migration。
+6. 在 Worker 的 `Settings` -> `Variables and Secrets` 中添加生产配置：
+   - Variables：`APP_NAME`、`SERVICE_PUBLIC_URL`、`MOTHER_REPORT_URL`、`MOTHER_REPORT_TIMEOUT_MS`、`NO_TORSION_FORM_DRY_RUN`、`NO_TORSION_FORM_SUBMIT_TARGET`、`NO_TORSION_CORRECTION_SUBMIT_TARGET`
+   - Secrets：`GOOGLE_CLOUD_TRANSLATION_API_KEY` 等不应公开的密钥
+7. 在 `Settings` -> `Triggers` 确认 Cron 触发器包含 `*/30 * * * *` 和 `* * * * *`。
+8. 在 `Settings` -> `Domains & Routes` -> `Add` -> `Custom Domain` 绑定 `sub.example.com`。
+9. 推送一个提交触发 Workers Builds。部署成功后访问 `https://sub.example.com/api/health` 和 `https://sub.example.com/form`，再回到母库 Console 确认子库已上报。
+
+Cloudflare 官方参考：[`Workers Builds`](https://developers.cloudflare.com/workers/ci-cd/builds/)、[`D1 Dashboard`](https://developers.cloudflare.com/d1/get-started/)、[`Variables and Secrets`](https://developers.cloudflare.com/workers/configuration/secrets/)、[`Custom Domains`](https://developers.cloudflare.com/workers/configuration/routing/custom-domains/)。
+
 ## 测试
 
 ```bash
