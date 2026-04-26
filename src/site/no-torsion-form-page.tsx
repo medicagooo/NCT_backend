@@ -446,8 +446,14 @@ button {
 .actions {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 12px;
   margin-top: 24px;
+}
+
+.actions__form {
+  display: inline-flex;
+  margin: 0;
 }
 
 .hotline-notice {
@@ -462,17 +468,35 @@ button {
 }
 
 .button {
+  -webkit-appearance: none;
+  appearance: none;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  min-height: 3.25rem;
+  min-width: 8.5rem;
   padding: 14px 20px;
   border-radius: 999px;
   border: 1px solid transparent;
   font-weight: 700;
+  line-height: 1.2;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.button:focus {
+  outline: none;
+}
+
+.button:focus-visible {
+  outline: 3px solid rgba(13, 107, 111, 0.28);
+  outline-offset: 3px;
 }
 
 .button--primary {
   background: var(--accent);
+  border-color: rgba(13, 107, 111, 0.38);
+  box-shadow: 0 12px 26px rgba(13, 107, 111, 0.16);
   color: white;
 }
 
@@ -598,6 +622,16 @@ button {
 
   .form-grid {
     grid-template-columns: 1fr;
+  }
+
+  .actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .actions__form,
+  .actions .button {
+    width: 100%;
   }
 }
 `;
@@ -785,7 +819,7 @@ const TEXTS: Record<SupportedLanguage, PageTexts> = {
     fieldBirthYear: '出生年份',
     fieldCity: '机构所在城市 / 区县',
     fieldContact: '机构联系方式',
-    fieldCoordinates: '经纬度',
+    fieldCoordinates: '坐标（纬度, 经度）',
     fieldCounty: '机构所在县区',
     fieldDateEnd: '离开日期',
     fieldDateStart: '首次被送入日期',
@@ -812,7 +846,7 @@ const TEXTS: Record<SupportedLanguage, PageTexts> = {
     fieldVictimExperienceSection: '受害人经历',
     fieldVictimSex: '受害者性别',
     fieldViolenceCategories: '机构丑闻及暴力行为（请选出符合自己经历及目睹他人受暴的所有选项）',
-    helperCoordinates: '如果通过地图或定位取得经纬度，会写入下面的文本框；也可以手动填写“纬度, 经度”。',
+    helperCoordinates: '坐标格式为“纬度, 经度”。地图选点或定位会自动填入，也可以手动修改。',
     helperFormIntro: '隐私说明：本问卷中填写的出生年份、性别等个人基本信息将被严格保密，相关经历、机构曝光信息未来可能公开展示，请勿在可能公开的字段中填写身份证号、私人电话、家庭住址等您的个人敏感信息。 填写过程中如感不适可随时停止',
     hintDateEnd: '若目前仍在校，可不填',
     hintDateStart: '假如有多次被送入经历，可在经历描述中说明情况',
@@ -835,7 +869,7 @@ const TEXTS: Record<SupportedLanguage, PageTexts> = {
     placeholderBirthYear: '请选择年份',
     placeholderCity: '请先选择省份',
     placeholderContact: '电话、邮箱或其它公开联系方式',
-    placeholderCoordinates: '例如：39.904200, 116.407400',
+    placeholderCoordinates: '纬度, 经度，例如：39.904200, 116.407400',
     placeholderCounty: '可选：请先选择城市',
     placeholderExperience: '请描述个人在校经历、管理方式等...',
     placeholderExitMethod: '可选：请选择离开机构的方式',
@@ -889,7 +923,7 @@ const TEXTS: Record<SupportedLanguage, PageTexts> = {
     fieldBirthYear: '出生年份',
     fieldCity: '機構所在城市 / 區縣',
     fieldContact: '機構聯絡方式',
-    fieldCoordinates: '經緯度',
+    fieldCoordinates: '座標（緯度, 經度）',
     fieldCounty: '機構所在縣區',
     fieldDateEnd: '離開日期',
     fieldDateStart: '首次被送入日期',
@@ -916,7 +950,7 @@ const TEXTS: Record<SupportedLanguage, PageTexts> = {
     fieldVictimExperienceSection: '受害人經歷',
     fieldVictimSex: '受害者性別',
     fieldViolenceCategories: '機構醜聞及暴力行為（請選出符合自己經歷及目睹他人受暴的所有選項）',
-    helperCoordinates: '如果透過地圖或定位取得經緯度，會寫入下面的文字框；也可以手動填寫「緯度, 經度」。',
+    helperCoordinates: '座標格式為「緯度, 經度」。地圖選點或定位會自動填入，也可以手動修改。',
     helperFormIntro: '隱私說明：本問卷中填寫的出生年份、性別等個人基本資訊將被嚴格保密，相關經歷、機構曝光資訊未來可能公開展示，請勿在可能公開的欄位中填寫身分證號、私人電話、家庭住址等您的個人敏感資訊。 填寫過程中如感不適可隨時停止',
     hintDateEnd: '若目前仍在校，可不填',
     hintDateStart: '假如有多次被送入經歷，可在經歷描述中說明情況',
@@ -939,7 +973,7 @@ const TEXTS: Record<SupportedLanguage, PageTexts> = {
     placeholderBirthYear: '請選擇年份',
     placeholderCity: '請先選擇省份',
     placeholderContact: '電話、Email 或其它公開聯絡方式',
-    placeholderCoordinates: '例如：39.904200, 116.407400',
+    placeholderCoordinates: '緯度, 經度，例如：39.904200, 116.407400',
     placeholderCounty: '可選：請先選擇城市',
     placeholderExperience: '請描述個人在校經歷、管理方式等...',
     placeholderExitMethod: '可選：請選擇離開機構的方式',
@@ -993,7 +1027,7 @@ const TEXTS: Record<SupportedLanguage, PageTexts> = {
     fieldBirthYear: 'Birth year',
     fieldCity: 'Institution city / district',
     fieldContact: 'Institution contact information',
-    fieldCoordinates: 'Coordinates',
+    fieldCoordinates: 'Coordinates (latitude, longitude)',
     fieldCounty: 'County / district',
     fieldDateEnd: 'End date',
     fieldDateStart: 'First admission date',
@@ -1020,7 +1054,7 @@ const TEXTS: Record<SupportedLanguage, PageTexts> = {
     fieldVictimExperienceSection: 'Victim experience',
     fieldVictimSex: 'Victim sex / gender',
     fieldViolenceCategories: 'Scandals and violent acts',
-    helperCoordinates: 'Map selection or geolocation will write coordinates into this text field. You can also enter "latitude, longitude" manually.',
+    helperCoordinates: 'Coordinate format is "latitude, longitude". Map selection or geolocation will fill it automatically, and you can edit it manually.',
     helperFormIntro: 'Privacy notice: Personal basic information entered in this questionnaire, such as birth year and sex/gender, will be kept strictly confidential. Related experiences and institution exposure information may be publicly displayed in the future. Please do not enter ID numbers, private phone numbers, home addresses, or other personal sensitive information in fields that may become public. You may stop at any time if you feel uncomfortable while filling it out.',
     hintDateEnd: 'Leave blank if the person is still there.',
     hintDateStart: 'If there were multiple admissions, describe them in the experience field.',
@@ -1043,7 +1077,7 @@ const TEXTS: Record<SupportedLanguage, PageTexts> = {
     placeholderBirthYear: 'Select a year',
     placeholderCity: 'Select a province first',
     placeholderContact: 'Phone, email, or another public contact',
-    placeholderCoordinates: 'Example: 39.904200, 116.407400',
+    placeholderCoordinates: 'Latitude, longitude. Example: 39.904200, 116.407400',
     placeholderCounty: 'Optional: select a city first',
     placeholderExperience: 'Describe the on-campus experience, management methods, and related details...',
     placeholderExitMethod: 'Optional: select how the person left',
@@ -2035,7 +2069,6 @@ export const NoTorsionStandaloneFormPage: FC<FormPageState> = ({ lang, token }) 
                   data-prompt={texts.statusMapPrompt}
                   data-selected={texts.statusLocationSelected}
                   data-unavailable={texts.statusLocationUnavailable}
-                  hidden
                   id="map-picker-status"
                 >
                   {texts.helperCoordinates}
@@ -2149,7 +2182,7 @@ export const NoTorsionStandalonePreviewPage: FC<PreviewPageState> = ({
           <div className="actions">
             <a className="button button--secondary" href={backHref}>{texts.actionBack}</a>
             {mode === 'confirm' && confirmationPayload && confirmationToken ? (
-              <form action={formAction} method="post">
+              <form action={formAction} className="actions__form" method="post">
                 <input name="confirmation_payload" type="hidden" value={confirmationPayload} />
                 <input name="confirmation_token" type="hidden" value={confirmationToken} />
                 <input name="lang" type="hidden" value={lang} />
