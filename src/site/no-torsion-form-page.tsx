@@ -12,6 +12,7 @@ import {
   SELF_IDENTITY,
   type NoTorsionConfirmResult,
   type NoTorsionFormValues,
+  type NoTorsionMediaSummary,
 } from '../lib/no-torsion-form';
 import { MEDIA_PICKER_CSS, MEDIA_PICKER_SCRIPT } from './media-picker-assets';
 
@@ -151,6 +152,7 @@ type PreviewPageState = {
   confirmationToken?: string;
   formAction: string;
   lang: SupportedLanguage;
+  mediaRecords?: NoTorsionMediaSummary[];
   mode: 'confirm' | 'preview';
   values: NoTorsionFormValues;
 };
@@ -184,19 +186,50 @@ const PAGE_CSS = `
   --border-strong: rgba(255, 255, 255, 0.58);
   --text: #14243d;
   --muted: rgba(31, 49, 80, 0.72);
+
+  /* Shared anti-conversion-therapy palette — kept in sync with NCT_frontend
+     styles.css. Use the pride spectrum for accents/strokes; keep --accent
+     stable so survivors filling out the form see calm, trauma-aware UI. */
+  --pride-1: #e63a3a;
+  --pride-2: #f29438;
+  --pride-3: #f7c94e;
+  --pride-4: #2da26b;
+  --pride-5: #2f6fea;
+  --pride-6: #8a4fcc;
+  --trans-blue: #5fc3f0;
+  --trans-pink: #ffb1cc;
+  --accent-gradient: linear-gradient(
+    90deg,
+    var(--pride-1) 0%,
+    var(--pride-2) 20%,
+    var(--pride-3) 40%,
+    var(--pride-4) 60%,
+    var(--pride-5) 80%,
+    var(--pride-6) 100%
+  );
+  --accent-gradient-soft: linear-gradient(
+    135deg,
+    rgba(95, 195, 240, 0.95),
+    rgba(255, 177, 204, 0.82)
+  );
+
   --accent: #2f6fea;
-  --accent-strong: #174fb8;
+  --accent-strong: #1d50c8;
   --accent-soft: rgba(255, 255, 255, 0.62);
-  --danger: #9f2d57;
+  --accent-secondary: var(--trans-pink);
+  --danger: #c93b73;
   --danger-soft: rgba(255, 232, 241, 0.7);
-  --success: #0c7a62;
+  --success: #15a37b;
   --success-soft: rgba(222, 255, 244, 0.68);
+  --warning: #f29438;
+
   --shadow: 0 28px 80px rgba(95, 116, 172, 0.2);
   --shadow-soft: 0 16px 44px rgba(95, 116, 172, 0.14);
   --radius-lg: 28px;
   --radius-md: 20px;
   --radius-sm: 14px;
 }
+
 
 * {
   box-sizing: border-box;
@@ -210,6 +243,8 @@ body {
   margin: 0;
   color: var(--text);
   background:
+    radial-gradient(ellipse at 20% 0%, rgba(95, 195, 240, 0.18), transparent 55%),
+    radial-gradient(ellipse at 88% 12%, rgba(255, 177, 204, 0.18), transparent 50%),
     linear-gradient(115deg, rgba(213, 237, 255, 0.96) 0%, rgba(231, 225, 255, 0.86) 45%, rgba(255, 218, 238, 0.96) 100%);
   font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
   min-height: 100vh;
@@ -543,6 +578,86 @@ button {
   color: var(--success);
 }
 
+.media-progress {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.media-progress progress {
+  flex: 1;
+  height: 10px;
+  border-radius: 999px;
+  overflow: hidden;
+  appearance: none;
+  -webkit-appearance: none;
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.media-progress progress::-webkit-progress-bar {
+  background: rgba(0, 0, 0, 0.08);
+  border-radius: 999px;
+}
+
+.media-progress progress::-webkit-progress-value {
+  background: linear-gradient(90deg, #4f8cff, #6f5cff);
+  border-radius: 999px;
+}
+
+.media-progress progress::-moz-progress-bar {
+  background: linear-gradient(90deg, #4f8cff, #6f5cff);
+  border-radius: 999px;
+}
+
+.media-progress__label {
+  font-variant-numeric: tabular-nums;
+  font-size: 0.95rem;
+  min-width: 4ch;
+  text-align: right;
+}
+
+.media-summary {
+  margin-top: 18px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: rgba(79, 140, 255, 0.06);
+}
+
+.media-summary__title {
+  margin: 0 0 8px;
+  font-size: 1rem;
+}
+
+.media-summary__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.media-summary__item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  background: var(--surface);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+}
+
+.media-summary__item strong {
+  word-break: break-all;
+}
+
+.media-summary__link {
+  font-size: 0.85rem;
+  word-break: break-all;
+}
+
 .choice-option {
   display: flex;
   align-items: flex-start;
@@ -641,10 +756,10 @@ button {
 }
 
 .button--primary {
-  background: linear-gradient(135deg, rgba(104, 172, 255, 0.96), rgba(255, 158, 207, 0.82));
+  background: var(--accent-gradient-soft);
   border-color: var(--border-strong);
   box-shadow: 0 14px 34px rgba(80, 115, 204, 0.24);
-  color: white;
+  color: #0b1730;
 }
 
 .button--secondary {
@@ -1949,8 +2064,14 @@ function syncQuestionnaireMediaUpload() {
   const fileInput = document.getElementById('questionnaire-media-file');
   const tagInput = document.getElementById('questionnaire-media-tags');
   const status = document.getElementById('questionnaire-media-status');
+  const recordsInput = document.getElementById('questionnaire-media-records');
+  const progressWrap = document.getElementById('questionnaire-media-progress-wrap');
+  const progressBar = document.getElementById('questionnaire-media-progress');
+  const progressLabel = document.getElementById('questionnaire-media-progress-label');
   const mediaPicker = window.createSchoolMediaPicker('questionnaire-media');
-  let mediaSubmittedWithForm = false;
+  const completedRecords = [];
+  const inFlight = new Set();
+  let pendingSubmit = null;
 
   function setStatus(message, isError) {
     if (!status) return;
@@ -1961,6 +2082,27 @@ function syncQuestionnaireMediaUpload() {
 
   function setFileStatus(index, message, isError) {
     mediaPicker.setFileStatus(index, message, isError);
+  }
+
+  function setProgress(done, total) {
+    if (!progressWrap || !progressBar || !progressLabel) return;
+    if (total <= 0) {
+      progressWrap.hidden = true;
+      progressBar.value = 0;
+      progressLabel.textContent = '0%';
+      return;
+    }
+    const pct = Math.round((done / total) * 100);
+    progressWrap.hidden = false;
+    progressBar.max = 100;
+    progressBar.value = pct;
+    progressLabel.textContent = pct + '%';
+  }
+
+  function syncRecordsInput() {
+    if (recordsInput) {
+      recordsInput.value = JSON.stringify(completedRecords);
+    }
   }
 
   function selectedText(selectId) {
@@ -1979,7 +2121,7 @@ function syncQuestionnaireMediaUpload() {
   if (!form || !fileInput) return;
 
   async function uploadFile(file, index, metadata) {
-    setFileStatus(index, '正在上传到后端', false);
+    setFileStatus(index, '正在上传', false);
     const body = new FormData();
     body.append('file', file, file.name);
     body.append('city', metadata.city);
@@ -2001,88 +2143,93 @@ function syncQuestionnaireMediaUpload() {
     return payload.media;
   }
 
-  form.addEventListener('submit', async (event) => {
-    if (mediaSubmittedWithForm || event.defaultPrevented) return;
+  function summarizeMedia(media, sourceFile, tags) {
+    return {
+      id: media.id || ('local-' + Date.now()),
+      fileName: media.fileName || (sourceFile && sourceFile.name) || '',
+      mediaType: media.mediaType || ((sourceFile && sourceFile.type && sourceFile.type.indexOf('video') === 0) ? 'video' : 'image'),
+      contentType: media.contentType || (sourceFile && sourceFile.type) || '',
+      byteSize: typeof media.byteSize === 'number' ? media.byteSize : (sourceFile ? sourceFile.size : 0),
+      publicUrl: media.publicUrl || '',
+      status: media.status || 'pending_review',
+      isR18: Boolean(media.isR18),
+      tags: Array.isArray(tags) ? tags.slice() : [],
+    };
+  }
 
-    const files = mediaPicker.getFiles();
-    if (files.length === 0) return;
-
-    event.preventDefault();
-    if (!form.checkValidity()) {
-      form.reportValidity();
-      return;
-    }
-
+  async function startUpload(file, index) {
     const schoolNameInput = document.querySelector('input[name="school_name"]');
     const addressInput = document.querySelector('input[name="school_address"]');
     const schoolName = schoolNameInput ? schoolNameInput.value.trim() : '';
-    const submitter = event.submitter && event.submitter instanceof HTMLElement
-      ? event.submitter
-      : null;
-    const submitButtons = Array.from(form.querySelectorAll('button[type="submit"]'));
-
     if (!schoolName) {
-      setStatus('请先填写机构名称。', true);
+      setFileStatus(index, '请先填写机构名称', true);
       return;
     }
-    if (files.length === 0) {
-      setStatus('请选择媒体文件。', true);
-      return;
-    }
-
+    const tags = parseTags();
     const metadata = {
       city: selectedText('report-area-city'),
       county: selectedText('report-area-county'),
       province: selectedText('report-area-province'),
       schoolAddress: addressInput ? addressInput.value.trim() : '',
       schoolName,
-      tags: parseTags(),
+      tags,
     };
-
-    let succeeded = 0;
-    let failed = 0;
-    submitButtons.forEach((button) => {
-      button.disabled = true;
-    });
+    const token = Symbol('upload-' + index);
+    inFlight.add(token);
     try {
-      for (const [index, file] of files.entries()) {
-        try {
-          await uploadFile(file, index, metadata);
-          succeeded += 1;
-        } catch (error) {
-          failed += 1;
-          setFileStatus(index, error instanceof Error ? error.message : '上传失败', true);
-        }
-        setStatus('上传进度：' + succeeded + ' 成功，' + failed + ' 失败，合计 ' + files.length + ' 个。', failed > 0);
-      }
-
-      if (failed === 0) {
-        mediaSubmittedWithForm = true;
-        mediaPicker.clear();
-        if (tagInput) tagInput.value = '';
-        setStatus('媒体已提交审核，正在提交问卷。', false);
-        submitButtons.forEach((button) => {
-          button.disabled = false;
-        });
-        if (typeof form.requestSubmit === 'function') {
-          if (submitter) {
-            form.requestSubmit(submitter);
-          } else {
-            form.requestSubmit();
-          }
-        } else {
-          form.submit();
-        }
-        return;
-      }
-      setStatus('上传完成：' + succeeded + ' 成功，' + failed + ' 失败。', failed > 0);
+      const media = await uploadFile(file, index, metadata);
+      completedRecords.push(summarizeMedia(media, file, tags));
+      syncRecordsInput();
+    } catch (error) {
+      setFileStatus(index, error && error.message ? error.message : '上传失败', true);
     } finally {
-      if (!mediaSubmittedWithForm) {
-        submitButtons.forEach((button) => {
-          button.disabled = false;
-        });
+      inFlight.delete(token);
+      const total = completedRecords.length + inFlight.size;
+      setProgress(completedRecords.length, total);
+      if (inFlight.size === 0) {
+        setStatus('媒体上传完成：' + completedRecords.length + ' 个文件已提交审核。', false);
+        if (pendingSubmit) {
+          const submitter = pendingSubmit.submitter;
+          pendingSubmit = null;
+          if (typeof form.requestSubmit === 'function') {
+            if (submitter) {
+              form.requestSubmit(submitter);
+            } else {
+              form.requestSubmit();
+            }
+          } else {
+            form.submit();
+          }
+        }
+      } else {
+        setStatus('上传中：' + completedRecords.length + ' / ' + total, false);
       }
     }
+  }
+
+  if (typeof mediaPicker.setOnSelectionChanged === 'function') {
+    mediaPicker.setOnSelectionChanged(function (entries) {
+      if (!entries || !entries.length) return;
+      const total = completedRecords.length + inFlight.size + entries.length;
+      setProgress(completedRecords.length, total);
+      entries.forEach(function (entry) {
+        startUpload(entry.file, entry.index);
+      });
+    });
+  }
+
+  form.addEventListener('submit', (event) => {
+    if (event.defaultPrevented) return;
+    if (inFlight.size === 0) return;
+    event.preventDefault();
+    if (!form.checkValidity()) {
+      form.reportValidity();
+      return;
+    }
+    setStatus('媒体上传仍在进行中，问卷将在所有文件上传完成后自动提交。', false);
+    pendingSubmit = {
+      submitter: event.submitter && event.submitter instanceof HTMLElement ? event.submitter : null,
+    };
   });
 }
 
@@ -2476,54 +2623,6 @@ export const NoTorsionStandaloneFormPage: FC<FormPageState> = ({ homeHref = '/',
                 </p>
               </div>
 
-              <div className="field field--full" id="questionnaire-media-panel">
-                <h2 className="form-section-title">{texts.fieldMediaSection}</h2>
-                <p className="field-note">{texts.helperMediaUpload}</p>
-                <div className="inline-grid">
-                  <div className="media-picker-field">
-                    <span className="field__label">{texts.fieldMediaFile}</span>
-                    <button className="media-picker-open-button" id="questionnaire-media-picker-open" type="button">
-                      选择图片 / 视频
-                    </button>
-                    <p className="media-selected-summary" id="questionnaire-media-selected-summary">未选择媒体文件。</p>
-                  </div>
-                  <label>
-                    <span className="field__label">{texts.fieldMediaTags}</span>
-                    <input
-                      id="questionnaire-media-tags"
-                      maxLength={240}
-                      placeholder="r18, 校门, 宿舍"
-                      type="text"
-                    />
-                  </label>
-                </div>
-                <div className="media-preview-grid" hidden id="questionnaire-media-preview-list" />
-                <p className="field-note" hidden id="questionnaire-media-status" />
-                <div className="media-picker-modal" hidden id="questionnaire-media-picker-dialog" role="dialog" aria-modal="true" aria-labelledby="questionnaire-media-picker-title">
-                  <div className="media-picker-backdrop" data-media-picker-close="true" />
-                  <section className="media-picker-panel">
-                    <div className="media-picker-header">
-                      <h2 id="questionnaire-media-picker-title">选择学校媒体</h2>
-                      <button aria-label="关闭" className="media-picker-close" id="questionnaire-media-picker-close" type="button">×</button>
-                    </div>
-                    <div className="media-picker-body">
-                      <div className="media-picker-dropzone" id="questionnaire-media-picker-dropzone">
-                        <strong>拖拽图片或视频到这里</strong>
-                        <p>也可以多次点击选择文件，一张一张补齐后再确认。</p>
-                        <button className="media-picker-secondary" id="questionnaire-media-picker-choose" type="button">选择文件</button>
-                        <input accept="image/gif,image/jpeg,image/png,image/webp,video/mp4,video/webm" hidden id="questionnaire-media-file" multiple type="file" />
-                      </div>
-                      <p className="media-picker-message" id="questionnaire-media-picker-message">拖拽文件到此处，或点击选择文件。</p>
-                      <div className="media-preview-grid" hidden id="questionnaire-media-picker-draft-list" />
-                    </div>
-                    <div className="media-picker-footer">
-                      <button className="media-picker-secondary" id="questionnaire-media-picker-cancel" type="button">取消</button>
-                      <button className="media-picker-confirm" id="questionnaire-media-picker-confirm" type="button">确定</button>
-                    </div>
-                  </section>
-                </div>
-              </div>
-
               <div className="field">
                 <span className="field__label">{texts.fieldContact}</span>
                 <input maxLength={30} name="contact_information" placeholder={texts.placeholderContact} required type="text" />
@@ -2570,6 +2669,59 @@ export const NoTorsionStandaloneFormPage: FC<FormPageState> = ({ homeHref = '/',
                 <span className="field__label">{texts.fieldOther}</span>
                 <textarea maxLength={3000} name="other" placeholder={texts.placeholderTextBlock} />
               </div>
+
+              <div className="field field--full" id="questionnaire-media-panel">
+                <h2 className="form-section-title">{texts.fieldMediaSection}</h2>
+                <p className="field-note">{texts.helperMediaUpload}</p>
+                <div className="inline-grid">
+                  <div className="media-picker-field">
+                    <span className="field__label">{texts.fieldMediaFile}</span>
+                    <button className="media-picker-open-button" id="questionnaire-media-picker-open" type="button">
+                      选择图片 / 视频
+                    </button>
+                    <p className="media-selected-summary" id="questionnaire-media-selected-summary">未选择媒体文件。</p>
+                  </div>
+                  <label>
+                    <span className="field__label">{texts.fieldMediaTags}</span>
+                    <input
+                      id="questionnaire-media-tags"
+                      maxLength={240}
+                      placeholder="r18, 校门, 宿舍"
+                      type="text"
+                    />
+                  </label>
+                </div>
+                <div className="media-progress" hidden id="questionnaire-media-progress-wrap">
+                  <progress id="questionnaire-media-progress" max={100} value={0} />
+                  <span className="media-progress__label" id="questionnaire-media-progress-label">0%</span>
+                </div>
+                <div className="media-preview-grid" hidden id="questionnaire-media-preview-list" />
+                <p className="field-note" hidden id="questionnaire-media-status" />
+                <input id="questionnaire-media-records" name="media_records" type="hidden" value="[]" />
+                <div className="media-picker-modal" hidden id="questionnaire-media-picker-dialog" role="dialog" aria-modal="true" aria-labelledby="questionnaire-media-picker-title">
+                  <div className="media-picker-backdrop" data-media-picker-close="true" />
+                  <section className="media-picker-panel">
+                    <div className="media-picker-header">
+                      <h2 id="questionnaire-media-picker-title">选择学校媒体</h2>
+                      <button aria-label="关闭" className="media-picker-close" id="questionnaire-media-picker-close" type="button">×</button>
+                    </div>
+                    <div className="media-picker-body">
+                      <div className="media-picker-dropzone" id="questionnaire-media-picker-dropzone">
+                        <strong>拖拽图片或视频到这里</strong>
+                        <p>也可以多次点击选择文件，一张一张补齐后再确认。</p>
+                        <button className="media-picker-secondary" id="questionnaire-media-picker-choose" type="button">选择文件</button>
+                        <input accept="image/gif,image/jpeg,image/png,image/webp,video/mp4,video/webm" hidden id="questionnaire-media-file" multiple type="file" />
+                      </div>
+                      <p className="media-picker-message" id="questionnaire-media-picker-message">拖拽文件到此处，或点击选择文件。</p>
+                      <div className="media-preview-grid" hidden id="questionnaire-media-picker-draft-list" />
+                    </div>
+                    <div className="media-picker-footer">
+                      <button className="media-picker-secondary" id="questionnaire-media-picker-cancel" type="button">取消</button>
+                      <button className="media-picker-confirm" id="questionnaire-media-picker-confirm" type="button">确定</button>
+                    </div>
+                  </section>
+                </div>
+              </div>
             </div>
             <div className="actions">
               <button className="button button--primary" type="submit">{texts.actionSubmit}</button>
@@ -2593,12 +2745,53 @@ export const NoTorsionStandaloneFormPage: FC<FormPageState> = ({ homeHref = '/',
   );
 };
 
+function formatBytes(bytes: number): string {
+  if (!Number.isFinite(bytes) || bytes <= 0) return '0 B';
+  const units = ['B', 'KB', 'MB', 'GB'];
+  let value = bytes;
+  let index = 0;
+  while (value >= 1024 && index < units.length - 1) {
+    value /= 1024;
+    index += 1;
+  }
+  return `${value.toFixed(value >= 100 || index === 0 ? 0 : 1)} ${units[index]}`;
+}
+
+const MediaSummaryBlock: FC<{
+  heading: string;
+  items: NoTorsionMediaSummary[];
+}> = ({ heading, items }) => {
+  if (!items.length) return null;
+  return (
+    <div className="media-summary">
+      <h3 className="media-summary__title">{heading}</h3>
+      <ul className="media-summary__list">
+        {items.map((item) => (
+          <li className="media-summary__item" key={item.id}>
+            <strong>{item.fileName}</strong>
+            <span>
+              {item.mediaType === 'video' ? '视频' : '图片'} · {formatBytes(item.byteSize)} · {item.status}
+              {item.isR18 ? ' · R18' : ''}
+            </span>
+            {item.publicUrl ? (
+              <a className="media-summary__link" href={item.publicUrl} rel="noreferrer" target="_blank">
+                {item.publicUrl}
+              </a>
+            ) : null}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+};
+
 export const NoTorsionStandalonePreviewPage: FC<PreviewPageState> = ({
   backHref,
   confirmationPayload,
   confirmationToken,
   formAction,
   lang,
+  mediaRecords,
   mode,
   values,
 }) => {
@@ -2628,6 +2821,8 @@ export const NoTorsionStandalonePreviewPage: FC<PreviewPageState> = ({
               </div>
             ))}
           </div>
+
+          <MediaSummaryBlock heading={texts.fieldMediaSection} items={mediaRecords ?? []} />
 
           <div className="actions">
             <a className="button button--secondary" href={backHref}>{texts.actionBack}</a>
@@ -2693,6 +2888,8 @@ export const NoTorsionStandaloneResultPage: FC<ResultPageState> = ({
               );
             })}
           </div>
+
+          <MediaSummaryBlock heading={texts.fieldMediaSection} items={result.mediaRecords ?? []} />
 
           <div className="actions">
             <a className="button button--secondary" href={backHref}>{texts.actionBack}</a>
