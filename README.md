@@ -288,6 +288,7 @@ npm run dev
 仅推荐使用 Cloudflare Dashboard 的 Workers Builds 网页部署。本项目的 Worker 项目名使用目录名的 Workers 兼容形式：`nct-backend`。
 
 网页部署会读取 [`wrangler.toml`](./wrangler.toml)。部署命令里的 `npm run cf:ensure` 会自动创建 D1 数据库 `nct-backend`、R2 bucket `nct-backend-media` / `nct-backend-media-preview`，把真实 `database_id` 写入当前构建环境中的 `wrangler.toml`，并执行远端 D1 migrations；不需要再手动创建 D1/R2 或手动填写 `database_id`。
+Cloudflare 账号第一次使用 R2 前，需要先在 Dashboard 的 `R2 Object Storage` 页面启用 R2。启用后，后续构建会自动创建并绑定上面的 R2 bucket。
 `wrangler.toml` 不包含 `[vars]`，生产变量和密钥以 Cloudflare Dashboard 为准。
 
 ### Workers Builds 填写
